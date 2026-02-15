@@ -1,6 +1,6 @@
 from collections import deque
 import heapq
-from grid_utils import get_neighbors, spawn_obstacle, get_path
+from gridstuff import get_neighbors, spawn_obstacle, get_path
 
 # bfs search
 def bfs(grid, start, target):

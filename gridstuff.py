@@ -1,6 +1,9 @@
 import random
+
 rows = 20
 cols = 20
+
+# movment directions - strict ordr from assignmnt
 # up, right, down, bottom-right, left, top-left
 directions = [
     (-1, 0),
@@ -31,6 +34,7 @@ def place_walls(grid, count=40):
             placed += 1
 
 def get_neighbors(grid, pos):
+    # get neighbers in order
     nbrs = []
     for dr, dc in directions:
         nr = pos[0] + dr
@@ -41,6 +45,7 @@ def get_neighbors(grid, pos):
     return nbrs
 
 def spawn_obstacle(grid, start, target):
+    # randomly spwan obsticle
     if random.random() < obstacle_prob:
         r = random.randint(0, rows-1)
         c = random.randint(0, cols-1)
@@ -50,6 +55,7 @@ def spawn_obstacle(grid, start, target):
     return None
 
 def get_path(came_from, start, target):
+    # traceback path
     path = []
     cur = target
     while cur != start:

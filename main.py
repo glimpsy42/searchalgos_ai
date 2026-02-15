@@ -1,7 +1,7 @@
 import pygame
 import sys
-from grid_utils import rows, cols, make_grid, place_walls
-from search_algos import bfs, dfs, ucs, dls, iddfs, bidirectional
+from gridstuff import rows, cols, make_grid, place_walls
+from algoss import bfs, dfs, ucs, dls, iddfs, bidirectional
 
 # colrs
 white = (255,255,255)
