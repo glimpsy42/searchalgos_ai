@@ -1,231 +1,233 @@
-import pygame
-import sys
-from gridstuff import rows, cols, make_grid, place_walls
-from algoss import bfs, dfs, ucs, dls, iddfs, bidirectional
-
-# colrs
-white = (255,255,255)
-black = (0,0,0)
-green = (0,200,0)
-red = (220,30,30)
-blue = (50,100,255)
-gray = (170,170,170)
-yellow = (255,230,0)
-lgray = (220,220,220)
-dgray = (100,100,100)
-orange = (255,165,0)
-btnclr = (70,130,180)
-btnhvr = (100,160,210)
-
-# sizes n stuff
-cell_sz = 28
-margin = 2
-topbar = 60
-bottombar = 100
-grid_w = cols*(cell_sz+margin)+margin
-grid_h = rows*(cell_sz+margin)+margin
-win_w = grid_w + 20
-win_h = topbar + grid_h + bottombar + 10
-delay = 60
+import pygame, sys, random
+from gridstuff import R, C, makegrid, addwalls
+from algoss import bfs,dfs,ucs,dls,iddfs,bidirectional
 
 pygame.init()
-screen = pygame.display.set_mode((win_w, win_h))
+
+# colrs n stuff
+BG = (240,240,235)
+WALL_C = (40,40,40)
+START_C = (30,180,30)
+END_C = (200,40,40)
+FRONT_C = (80,130,230)
+SEEN_C = (190,190,190)
+PATH_C = (255,210,50)
+WHITE = (255,255,255)
+TXT_C = (50,50,50)
+
+sz = 26  # cell size
+gap = 2
+toparea = 55
+botarea = 90
+gw = C*(sz+gap)+gap
+gh = R*(sz+gap)+gap
+W = gw+180  # extra space for legend on right side
+H = toparea+gh+botarea
+screen = pygame.display.set_mode((W, H))
 pygame.display.set_caption("search algos assignment")
-clk = pygame.time.Clock()
-fnt = pygame.font.SysFont("arial", 16)
-bigfnt = pygame.font.SysFont("arial", 20, bold=True)
-smfnt = pygame.font.SysFont("arial", 13)
-tinyfnt = pygame.font.SysFont("arial", 11)
+clock = pygame.time.Clock()
 
-# algos
-algonames = ["BFS","DFS","UCS","DLS","IDDFS","Bidirectional"]
-algofuncs = [bfs, dfs, ucs, dls, iddfs, bidirectional]
-cur_algo = 0
+f1 = pygame.font.SysFont("arial",15)
+f2 = pygame.font.SysFont("arial",19,bold=True)
+f3 = pygame.font.SysFont("arial",12)
+f4 = pygame.font.SysFont("arial",10)
 
-# grid setup
-grid = make_grid()
-startpos = (1,1)
-targetpos = (rows-2, cols-2)
-grid[startpos[0]][startpos[1]] = 2
-grid[targetpos[0]][targetpos[1]] = 3
-place_walls(grid, count=50)
-grid[startpos[0]][startpos[1]] = 2
-grid[targetpos[0]][targetpos[1]] = 3
+algos = ["BFS","DFS","UCS","DLS","IDDFS","Bidirectional"]
+algofn = [bfs,dfs,ucs,dls,iddfs,bidirectional]
+selidx = 0
 
-# state varibles
-frontr = set()
-explrd = set()
-finalpath = None
-is_running = False
-searchgen = None
-done = False
-stattxt = "pick algo and press start"
+# make grid
+g = makegrid()
+sp = (1,1)
+tp = (R-2,C-2)
+g[sp[0]][sp[1]] = 2
+g[tp[0]][tp[1]] = 3
+addwalls(g, 55)
+g[sp[0]][sp[1]] = 2  # make sure not overwritten
+g[tp[0]][tp[1]] = 3
 
-def draw():
-    screen.fill(lgray)
+# state
+fr = set()
+exp = set()
+pth = None
+running = False
+gen = None
+msg = "select algorithm then click Go"
+
+def drawlegend():
+    # legnd on right side
+    lx = gw+25
+    ly = toparea+10
+    items = [
+        (START_C, "Start"),
+        (END_C, "Target"),
+        (WALL_C, "Wall"),
+        (FRONT_C, "Frontier"),
+        (SEEN_C, "Explored"),
+        (PATH_C, "Path found"),
+    ]
+    head = f1.render("Legend:",True,TXT_C)
+    screen.blit(head,(lx,ly))
+    ly+=25
+    for color,label in items:
+        pygame.draw.rect(screen,color,(lx,ly,16,16))
+        pygame.draw.rect(screen,(180,180,180),(lx,ly,16,16),1)
+        txt = f3.render(label,True,TXT_C)
+        screen.blit(txt,(lx+22,ly+1))
+        ly+=24
+    # show currnt algo info
+    ly+=10
+    info = f3.render("Current: "+algos[selidx],True,(100,60,60))
+    screen.blit(info,(lx,ly))
+
+def drawgrid():
+    screen.fill(BG)
     # title
-    t = bigfnt.render("search algos assignment", True, black)
-    screen.blit(t, (win_w//2 - t.get_width()//2, 8))
-    # algo name
-    a = fnt.render("Algo: "+algonames[cur_algo], True, dgray)
-    screen.blit(a, (15, 35))
-    # draw grid cells
+    title = f2.render("search algos assignment",True,TXT_C)
+    screen.blit(title,(10,12))
+    # draw the grid
     ox = 10
-    oy = topbar
-    for r in range(rows):
-        for c in range(cols):
-            x = ox + c*(cell_sz+margin)+margin
-            y = oy + r*(cell_sz+margin)+margin
-            pos = (r,c)
-            cell = grid[r][c]
-            if finalpath and pos in finalpath:
-                clr = yellow
-            elif pos == startpos:
-                clr = green
-            elif pos == targetpos:
-                clr = red
-            elif cell == 1:
-                clr = black
-            elif pos in explrd:
-                clr = gray
-            elif pos in frontr:
-                clr = blue
+    oy = toparea
+    for i in range(R):
+        for j in range(C):
+            x = ox+j*(sz+gap)+gap
+            y = oy+i*(sz+gap)+gap
+            p = (i,j)
+            v = g[i][j]
+            # pick color
+            if pth and p in pth:
+                co = PATH_C
+            elif p==sp:
+                co = START_C
+            elif p==tp:
+                co = END_C
+            elif v==1:
+                co = WALL_C
+            elif p in exp:
+                co = SEEN_C
+            elif p in fr:
+                co = FRONT_C
             else:
-                clr = white
-            pygame.draw.rect(screen, clr, (x,y,cell_sz,cell_sz))
-            pygame.draw.rect(screen, lgray, (x,y,cell_sz,cell_sz), 1)
-    # buttons
-    draw_btns()
-    # status
-    s = smfnt.render(stattxt, True, black)
-    screen.blit(s, (15, topbar+grid_h+52))
-    # credts at bottom
-    cr = tinyfnt.render("made by ahmed & aleeza (23f0623 & 23f0736)", True, dgray)
-    screen.blit(cr, (win_w//2 - cr.get_width()//2, topbar+grid_h+bottombar-8))
+                co = WHITE
+            pygame.draw.rect(screen,co,(x,y,sz,sz))
+            pygame.draw.rect(screen,(200,200,200),(x,y,sz,sz),1)
+    drawlegend()
+    # btns
+    drawbuttons()
+    # msg
+    m = f3.render(msg,True,TXT_C)
+    screen.blit(m,(12,toparea+gh+50))
+    # credits
+    cr = f4.render("made by ahmed & aleeza (23f0623 & 23f0736)",True,(150,150,150))
+    screen.blit(cr,(W//2-cr.get_width()//2, H-14))
     pygame.display.flip()
 
-def draw_btns():
-    yp = topbar+grid_h+8
-    bw = 80
-    bh = 32
-    sx = 10
-    mouse = pygame.mouse.get_pos()
-    # prev
-    pr = pygame.Rect(sx, yp, 50, bh)
-    h = pr.collidepoint(mouse)
-    pygame.draw.rect(screen, btnhvr if h else btnclr, pr, border_radius=5)
-    t = fnt.render("<", True, white)
-    screen.blit(t, (pr.centerx-t.get_width()//2, pr.centery-t.get_height()//2))
-    # nxt
-    nr = pygame.Rect(sx+60, yp, 50, bh)
-    h = nr.collidepoint(mouse)
-    pygame.draw.rect(screen, btnhvr if h else btnclr, nr, border_radius=5)
-    t = fnt.render(">", True, white)
-    screen.blit(t, (nr.centerx-t.get_width()//2, nr.centery-t.get_height()//2))
-    # start btn
-    sr = pygame.Rect(sx+130, yp, bw, bh)
-    h = sr.collidepoint(mouse)
-    pygame.draw.rect(screen, btnhvr if h else green, sr, border_radius=5)
-    t = fnt.render("Start", True, white)
-    screen.blit(t, (sr.centerx-t.get_width()//2, sr.centery-t.get_height()//2))
-    # reset btn
-    rr = pygame.Rect(sx+220, yp, bw, bh)
-    h = rr.collidepoint(mouse)
-    pygame.draw.rect(screen, btnhvr if h else orange, rr, border_radius=5)
-    t = fnt.render("Reset", True, white)
-    screen.blit(t, (rr.centerx-t.get_width()//2, rr.centery-t.get_height()//2))
+def drawbuttons():
+    by = toparea+gh+10
+    mx,my = pygame.mouse.get_pos()
+    # prev btn
+    b1 = pygame.Rect(12,by,40,30)
+    c1 = (100,160,200) if b1.collidepoint(mx,my) else (70,130,180)
+    pygame.draw.rect(screen,c1,b1,border_radius=4)
+    screen.blit(f1.render("<",True,WHITE),(b1.centerx-4,b1.centery-8))
+    # next btn
+    b2 = pygame.Rect(60,by,40,30)
+    c2 = (100,160,200) if b2.collidepoint(mx,my) else (70,130,180)
+    pygame.draw.rect(screen,c2,b2,border_radius=4)
+    screen.blit(f1.render(">",True,WHITE),(b2.centerx-4,b2.centery-8))
+    # algo name between
+    nm = f1.render(algos[selidx],True,TXT_C)
+    screen.blit(nm,(112,by+6))
+    # go btn
+    b3 = pygame.Rect(220,by,55,30)
+    c3 = (60,190,60) if b3.collidepoint(mx,my) else (40,160,40)
+    pygame.draw.rect(screen,c3,b3,border_radius=4)
+    screen.blit(f1.render("Go",True,WHITE),(b3.centerx-8,b3.centery-8))
+    # reset
+    b4 = pygame.Rect(285,by,55,30)
+    c4 = (230,140,50) if b4.collidepoint(mx,my) else (210,120,30)
+    pygame.draw.rect(screen,c4,b4,border_radius=4)
+    screen.blit(f1.render("Reset",True,WHITE),(b4.x+6,b4.centery-8))
 
-def get_btns():
-    yp = topbar+grid_h+8
-    bw = 80
-    bh = 32
-    sx = 10
-    return (pygame.Rect(sx,yp,50,bh), pygame.Rect(sx+60,yp,50,bh),
-            pygame.Rect(sx+130,yp,bw,bh), pygame.Rect(sx+220,yp,bw,bh))
+def getbtns():
+    by = toparea+gh+10
+    return (pygame.Rect(12,by,40,30),pygame.Rect(60,by,40,30),
+            pygame.Rect(220,by,55,30),pygame.Rect(285,by,55,30))
 
-def reset():
-    global grid,frontr,explrd,finalpath,is_running,searchgen,done,stattxt
-    grid = make_grid()
-    grid[startpos[0]][startpos[1]] = 2
-    grid[targetpos[0]][targetpos[1]] = 3
-    place_walls(grid, count=50)
-    grid[startpos[0]][startpos[1]] = 2
-    grid[targetpos[0]][targetpos[1]] = 3
-    frontr = set()
-    explrd = set()
-    finalpath = None
-    is_running = False
-    searchgen = None
-    done = False
-    stattxt = "grid reset. pick algo and press start"
+def doreset():
+    global g,fr,exp,pth,running,gen,msg
+    g = makegrid()
+    g[sp[0]][sp[1]]=2
+    g[tp[0]][tp[1]]=3
+    addwalls(g,55)
+    g[sp[0]][sp[1]]=2
+    g[tp[0]][tp[1]]=3
+    fr=set(); exp=set(); pth=None
+    running=False; gen=None
+    msg="grid reset! pick algo n press go"
 
-def startsearch():
-    global searchgen,is_running,done,frontr,explrd,finalpath,stattxt
-    frontr = set()
-    explrd = set()
-    finalpath = None
-    done = False
-    algo = algofuncs[cur_algo]
-    if cur_algo == 3:
-        searchgen = algo(grid, startpos, targetpos, limit=25)
-    elif cur_algo == 4:
-        searchgen = algo(grid, startpos, targetpos, max_depth=35)
+def startgo():
+    global gen,running,fr,exp,pth,msg
+    fr=set(); exp=set(); pth=None
+    fn = algofn[selidx]
+    if selidx==3:  # dls
+        gen = fn(g,sp,tp,limit=25)
+    elif selidx==4:  # iddfs
+        gen = fn(g,sp,tp,max_depth=35)
     else:
-        searchgen = algo(grid, startpos, targetpos)
-    is_running = True
-    stattxt = "running " + algonames[cur_algo] + "..."
+        gen = fn(g,sp,tp)
+    running=True
+    msg="running "+algos[selidx]+"..."
 
-def step():
-    global frontr,explrd,finalpath,is_running,done,stattxt,searchgen
-    if searchgen is None:
-        return
+def dostep():
+    global fr,exp,pth,running,msg,gen
+    if gen==None: return
     try:
-        f, e, path = next(searchgen)
-        frontr = set(f)
-        explrd = e
-        if path is not None:
-            if len(path) > 0:
-                finalpath = set(path)
-                stattxt = algonames[cur_algo]+" found path! length: "+str(len(path))
+        f,e,path = next(gen)
+        fr = set(f)
+        exp = e
+        if path != None:
+            if len(path)>0:
+                pth = set(path)
+                msg = algos[selidx]+" done! path length="+str(len(path))
             else:
-                finalpath = None
-                stattxt = algonames[cur_algo]+" - no path found!"
-            is_running = False
-            done = True
+                pth = None
+                msg = algos[selidx]+" couldnt find path :("
+            running = False
     except StopIteration:
-        is_running = False
-        done = True
-        if finalpath is None:
-            stattxt = algonames[cur_algo]+" - no path found"
+        running=False
+        if pth==None:
+            msg = algos[selidx]+" no path found"
 
 # main loop
-last_t = 0
+last = 0
+spd = 55  # miliseconds between steps
 while True:
     for ev in pygame.event.get():
-        if ev.type == pygame.QUIT:
+        if ev.type==pygame.QUIT:
             pygame.quit()
             sys.exit()
-        if ev.type == pygame.MOUSEBUTTONDOWN:
-            mx,my = ev.pos
-            pr,nr,sr,rr = get_btns()
-            if pr.collidepoint(mx,my) and not is_running:
-                cur_algo = (cur_algo-1) % len(algonames)
-                stattxt = "selected: "+algonames[cur_algo]
-            elif nr.collidepoint(mx,my) and not is_running:
-                cur_algo = (cur_algo+1) % len(algonames)
-                stattxt = "selected: "+algonames[cur_algo]
-            elif sr.collidepoint(mx,my) and not is_running:
-                startsearch()
-            elif rr.collidepoint(mx,my):
-                reset()
-        if ev.type == pygame.KEYDOWN:
-            if ev.key == pygame.K_SPACE and not is_running:
-                startsearch()
-            if ev.key == pygame.K_r:
-                reset()
-    now = pygame.time.get_ticks()
-    if is_running and now - last_t > delay:
-        step()
-        last_t = now
-    draw()
-    clk.tick(60)
+        if ev.type==pygame.MOUSEBUTTONDOWN:
+            x,y = ev.pos
+            b1,b2,b3,b4 = getbtns()
+            if b1.collidepoint(x,y) and not running:
+                selidx = (selidx-1) % len(algos)
+                msg = "picked: "+algos[selidx]
+            elif b2.collidepoint(x,y) and not running:
+                selidx = (selidx+1) % len(algos)
+                msg = "picked: "+algos[selidx]
+            elif b3.collidepoint(x,y) and not running:
+                startgo()
+            elif b4.collidepoint(x,y):
+                doreset()
+        if ev.type==pygame.KEYDOWN:
+            if ev.key==pygame.K_SPACE and not running:
+                startgo()
+            if ev.key==pygame.K_r:
+                doreset()
+    t = pygame.time.get_ticks()
+    if running and t-last > spd:
+        dostep()
+        last = t
+    drawgrid()
+    clock.tick(60)

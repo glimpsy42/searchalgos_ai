@@ -1,68 +1,60 @@
 import random
 
-rows = 20
-cols = 20
+# grid size stuff
+R = 20
+C = 20
 
-# movment directions - strict ordr from assignmnt
-# up, right, down, bottom-right, left, top-left
-directions = [
-    (-1, 0),
-    (0, 1),
-    (1, 0),
-    (1, 1),
-    (0, -1),
-    (-1, -1),
-]
-obstacle_prob = 0.03
+# direcions for movemnt (assignmnet order)
+dirs = [(-1,0),(0,1),(1,0),(1,1),(0,-1),(-1,-1)]
+wall_chance = 0.03  # for dynmic obsatcle
 
-def make_grid():
-    grid = []
-    for r in range(rows):
-        row = []
-        for c in range(cols):
-            row.append(0)
-        grid.append(row)
-    return grid
+def makegrid():
+    g = []
+    for i in range(R):
+        r = []
+        for j in range(C):
+            r.append(0)
+        g.append(r)
+    return g
 
-def place_walls(grid, count=40):
-    placed = 0
-    while placed < count:
-        r = random.randint(0, rows-1)
-        c = random.randint(0, cols-1)
-        if grid[r][c] == 0:
-            grid[r][c] = 1
-            placed += 1
+def addwalls(g, num=40):
+    # puts randon walls
+    n = 0
+    while n < num:
+        x = random.randint(0,R-1)
+        y = random.randint(0,C-1)
+        if g[x][y]==0:
+            g[x][y] = 1
+            n+=1
 
-def get_neighbors(grid, pos):
-    # get neighbers in order
-    nbrs = []
-    for dr, dc in directions:
-        nr = pos[0] + dr
-        nc = pos[1] + dc
-        if 0 <= nr < rows and 0 <= nc < cols:
-            if grid[nr][nc] != 1:
-                nbrs.append((nr, nc))
-    return nbrs
+def getnbrs(g, p):
+    # returns neigbors
+    res = []
+    for d in dirs:
+        nx = p[0]+d[0]
+        ny = p[1]+d[1]
+        if nx>=0 and nx<R and ny>=0 and ny<C:
+            if g[nx][ny] != 1:
+                res.append((nx,ny))
+    return res
 
-def spawn_obstacle(grid, start, target):
-    # randomly spwan obsticle
-    if random.random() < obstacle_prob:
-        r = random.randint(0, rows-1)
-        c = random.randint(0, cols-1)
-        if grid[r][c] == 0 and (r,c) != start and (r,c) != target:
-            grid[r][c] = 1
-            return (r,c)
+def tryspawn(g, s, t):
+    # maybe add a wall somwhere
+    if random.random() < wall_chance:
+        x = random.randint(0,R-1)
+        y = random.randint(0,C-1)
+        if g[x][y]==0 and (x,y)!=s and (x,y)!=t:
+            g[x][y]=1
     return None
 
-def get_path(came_from, start, target):
-    # traceback path
-    path = []
-    cur = target
-    while cur != start:
-        path.append(cur)
-        if cur not in came_from:
-            return []
-        cur = came_from[cur]
-    path.append(start)
-    path.reverse()
-    return path
+def tracepath(par, s, t):
+    p = []
+    n = t
+    while n != s:
+        p.append(n)
+        if n not in par:
+            return []  # cant find
+        n = par[n]
+    p.append(s)
+    p.reverse()
+    return p
