@@ -8,3 +8,17 @@ BFS, DFS, UCS, DLS, IDDFS, Bidirectionall searchh
 # run
 need python and pygame
 run main.py probably
+
+pip install pygame
+python main.py
+
+# controls
+- < > to switch algos
+- Go to start serching
+- Reset to get new grid
+
+## fules
+
+- main.py - main thingy
+- algoss.py - all the search algos
+- gridstuff.py - grid & directons etc
