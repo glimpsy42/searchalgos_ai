@@ -58,7 +58,6 @@ def dfs(grid, s, t):
         yield list(fr),seen.copy(),None
     yield [],seen.copy(),[]
 
-# ucs - unifrom cost
 def ucs(grid, s, t):
     idx = 0
     hp = [(0,idx,s)]
@@ -97,7 +96,6 @@ def ucs(grid, s, t):
         yield list(fr),seen.copy(),None
     yield [],seen.copy(),[]
 
-# dls - depht limited
 def dls(grid, s, t, limit=20):
     seen = set()
     par = {}
@@ -128,7 +126,7 @@ def dls(grid, s, t, limit=20):
         yield list(fr),seen.copy(),None
     yield [],seen.copy(),[]
 
-# iddfs iteratve deepenning
+# iteratve deepenning
 def iddfs(grid, s, t, max_depth=30):
     allseen = set()
     for lim in range(max_depth+1):
@@ -161,7 +159,6 @@ def iddfs(grid, s, t, max_depth=30):
             yield list(fr),allseen.copy(),None
     yield [],allseen.copy(),[]
 
-# bidirectionl serach
 def bidirectional(grid, s, t):
     q1 = deque([s])
     q2 = deque([t])
@@ -200,7 +197,6 @@ def bidirectional(grid, s, t):
     yield [],(v1|v2).copy(),[]
 
 def _bipath(p1,p2,s,t,m):
-    # trace both halfs
     a = []
     n = m
     while n!=s:

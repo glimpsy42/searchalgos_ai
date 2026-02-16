@@ -1,12 +1,11 @@
 import random
 
-# grid size stuff
-R = 20
-C = 20
+# grid size change these to make bigger or smol
+R = 15
+C = 15
 
-# direcions for movemnt (assignmnet order)
-dirs = [(-1,0),(0,1),(1,0),(1,1),(0,-1),(-1,-1)]
-wall_chance = 0.03  # for dynmic obsatcle
+dirs = [(-1,0),(0,1),(1,0),(1,1),(0,-1),(-1,-1)] # no diagnoalls top right or botom left
+wall_chance = 0.03
 
 def makegrid():
     g = []
@@ -18,7 +17,6 @@ def makegrid():
     return g
 
 def addwalls(g, num=40):
-    # puts randon walls
     n = 0
     while n < num:
         x = random.randint(0,R-1)
@@ -28,7 +26,6 @@ def addwalls(g, num=40):
             n+=1
 
 def getnbrs(g, p):
-    # returns neigbors
     res = []
     for d in dirs:
         nx = p[0]+d[0]
@@ -39,7 +36,6 @@ def getnbrs(g, p):
     return res
 
 def tryspawn(g, s, t):
-    # maybe add a wall somwhere
     if random.random() < wall_chance:
         x = random.randint(0,R-1)
         y = random.randint(0,C-1)
@@ -53,7 +49,7 @@ def tracepath(par, s, t):
     while n != s:
         p.append(n)
         if n not in par:
-            return []  # cant find
+            return []
         n = par[n]
     p.append(s)
     p.reverse()

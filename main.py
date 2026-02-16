@@ -3,7 +3,6 @@ from gridstuff import R, C, makegrid, addwalls
 from algoss import bfs,dfs,ucs,dls,iddfs,bidirectional
 
 pygame.init()
-
 # colrs n stuff
 BG = (240,240,235)
 WALL_C = (40,40,40)
@@ -21,10 +20,10 @@ toparea = 55
 botarea = 90
 gw = C*(sz+gap)+gap
 gh = R*(sz+gap)+gap
-W = gw+180  # extra space for legend on right side
+W = gw+120
 H = toparea+gh+botarea
 screen = pygame.display.set_mode((W, H))
-pygame.display.set_caption("search algos assignment")
+pygame.display.set_caption("search algos")
 clock = pygame.time.Clock()
 
 f1 = pygame.font.SysFont("arial",15)
@@ -36,37 +35,37 @@ algos = ["BFS","DFS","UCS","DLS","IDDFS","Bidirectional"]
 algofn = [bfs,dfs,ucs,dls,iddfs,bidirectional]
 selidx = 0
 
-# make grid
+# makin grid
 g = makegrid()
 sp = (1,1)
 tp = (R-2,C-2)
 g[sp[0]][sp[1]] = 2
 g[tp[0]][tp[1]] = 3
 addwalls(g, 55)
-g[sp[0]][sp[1]] = 2  # make sure not overwritten
+g[sp[0]][sp[1]] = 2 
 g[tp[0]][tp[1]] = 3
 
-# state
+# statess
 fr = set()
 exp = set()
 pth = None
 running = False
 gen = None
-msg = "select algorithm then click Go"
+msg = "select algo u want!!"
 
 def drawlegend():
     # legnd on right side
     lx = gw+25
     ly = toparea+10
     items = [
-        (START_C, "Start"),
-        (END_C, "Target"),
-        (WALL_C, "Wall"),
-        (FRONT_C, "Frontier"),
-        (SEEN_C, "Explored"),
-        (PATH_C, "Path found"),
+        (START_C, "start"),
+        (END_C, "endd"),
+        (WALL_C, "wall"),
+        (FRONT_C, "front"),
+        (SEEN_C, "explored"),
+        (PATH_C, "path found"),
     ]
-    head = f1.render("Legend:",True,TXT_C)
+    head = f1.render("info:",True,TXT_C)
     screen.blit(head,(lx,ly))
     ly+=25
     for color,label in items:
@@ -77,13 +76,13 @@ def drawlegend():
         ly+=24
     # show currnt algo info
     ly+=10
-    info = f3.render("Current: "+algos[selidx],True,(100,60,60))
+    info = f3.render("current algo: "+algos[selidx],True,(100,60,60))
     screen.blit(info,(lx,ly))
 
 def drawgrid():
     screen.fill(BG)
     # title
-    title = f2.render("search algos assignment",True,TXT_C)
+    title = f2.render("Search Algorithms Assignment by ahmed & aleeza (23f0623 & 23f0736)",True,TXT_C)
     screen.blit(title,(10,12))
     # draw the grid
     ox = 10
@@ -189,10 +188,10 @@ def dostep():
         if path != None:
             if len(path)>0:
                 pth = set(path)
-                msg = algos[selidx]+" done! path length="+str(len(path))
+                msg = algos[selidx]+"path length="+str(len(path))
             else:
                 pth = None
-                msg = algos[selidx]+" couldnt find path :("
+                msg = algos[selidx]+" cant find path :("
             running = False
     except StopIteration:
         running=False
